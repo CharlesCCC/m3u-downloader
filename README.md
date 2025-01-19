@@ -12,3 +12,6 @@ filename1, URL.m3u
 filename2, URL.m3u
 filename3, URL.m3u
 ```
+
+# New script for processing .m3u files
+python m3u_parser_downloader.py your_playlist.m3u -w 5
