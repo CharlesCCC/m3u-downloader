@@ -43,6 +43,26 @@ def mark_as_completed(name):
         except Exception as e:
             logger.error(f"Error writing to completed downloads file: {str(e)}")
 
+def get_unique_filename(base_name, output_dir):
+    """
+    Generate a unique filename by appending a sequence number if needed.
+    Returns (unique_clean_name, output_file_path)
+    """
+    # Clean filename - remove invalid characters
+    clean_name = "".join(c for c in base_name if c.isalnum() or c in (' ', '-', '_')).strip()
+    
+    # Check if base filename exists
+    counter = 1
+    final_name = clean_name
+    output_file = output_dir / f"{final_name}.mp4"
+    
+    while output_file.exists():
+        counter += 1
+        final_name = f"{clean_name}-{counter}"
+        output_file = output_dir / f"{final_name}.mp4"
+    
+    return final_name, output_file
+
 def download_and_encode(task):
     name, url = task
     output_dir = Path('downloads')
@@ -56,23 +76,16 @@ def download_and_encode(task):
         logger.info(f"Thread {thread_name}: Skipping {name} as it contains '台'")
         return False
     
-    # Skip if already processed
-    completed_downloads = load_completed_downloads()
-    if name in completed_downloads:
-        logger.info(f"Thread {thread_name}: Skipping {name} as it was already processed")
-        return False
-    
     # Create output directory if it doesn't exist
     output_dir.mkdir(exist_ok=True)
     
-    # Clean filename - remove invalid characters
-    clean_name = "".join(c for c in name if c.isalnum() or c in (' ', '-', '_')).strip()
-    output_file = output_dir / f"{clean_name}.mp4"
+    # Get unique filename
+    unique_name, output_file = get_unique_filename(name, output_dir)
     
-    # Skip if file already exists
-    if output_file.exists():
-        logger.info(f"Thread {thread_name}: Skipping {name} as file already exists")
-        mark_as_completed(name)
+    # Skip if already processed with this exact URL
+    completed_downloads = load_completed_downloads()
+    if f"{unique_name}:{url}" in completed_downloads:
+        logger.info(f"Thread {thread_name}: Skipping {name} as it was already processed")
         return False
     
     # FFmpeg command
@@ -90,11 +103,12 @@ def download_and_encode(task):
     ]
     
     try:
-        logger.info(f"Thread {thread_name}: Starting {name}")
+        logger.info(f"Thread {thread_name}: Starting {name} -> {unique_name}")
         start_time = datetime.now()
         process = subprocess.run(cmd, check=True, capture_output=True, text=True, timeout=TIMEOUT_SECONDS)
-        logger.info(f"Thread {thread_name}: Completed {name}")
-        mark_as_completed(name)
+        logger.info(f"Thread {thread_name}: Completed {unique_name}")
+        # Store both name and URL to prevent duplicate downloads
+        mark_as_completed(f"{unique_name}:{url}")
         return True
     except subprocess.TimeoutExpired as e:
         duration = datetime.now() - start_time
