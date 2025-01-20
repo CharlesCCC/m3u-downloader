@@ -72,8 +72,8 @@ def download_and_encode(task):
     logger.info(f"Thread {thread_name} processing: {name}")
     
     # Skip if name contains "台"
-    if "台" in name:
-        logger.info(f"Thread {thread_name}: Skipping {name} as it contains '台'")
+    if "台" in name or "频道" in name:
+        logger.info(f"Thread {thread_name}: Skipping {name} as it contains '台' or '频道'")
         return False
     
     # Create output directory if it doesn't exist
