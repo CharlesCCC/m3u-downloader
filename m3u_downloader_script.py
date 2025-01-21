@@ -21,6 +21,7 @@ logger = logging.getLogger(__name__)
 
 # Add thread-safe file writing
 file_lock = threading.Lock()
+filename_lock = threading.Lock()  # New lock for filename generation
 
 def load_completed_downloads():
     completed_file = Path('completed_downloads.txt')
@@ -47,20 +48,25 @@ def get_unique_filename(base_name, output_dir):
     """
     Generate a unique filename by appending a sequence number if needed.
     Returns (unique_clean_name, output_file_path)
+    Thread-safe implementation using a lock.
     """
     # Clean filename - remove invalid characters
     clean_name = "".join(c for c in base_name if c.isalnum() or c in (' ', '-', '_')).strip()
     
-    # Check if base filename exists
-    counter = 1
-    final_name = clean_name
-    output_file = output_dir / f"{final_name}.mp4"
-    
-    while output_file.exists():
-        counter += 1
-        final_name = f"{clean_name}-{counter}"
+    with filename_lock:  # Ensure thread-safe filename generation
+        # Check if base filename exists
+        counter = 1
+        final_name = clean_name
         output_file = output_dir / f"{final_name}.mp4"
-    
+        
+        while output_file.exists():
+            counter += 1
+            final_name = f"{clean_name}-{counter}"
+            output_file = output_dir / f"{final_name}.mp4"
+        
+        # Create an empty file to "reserve" the filename
+        output_file.touch()
+        
     return final_name, output_file
 
 def download_and_encode(task):
