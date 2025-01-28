@@ -130,9 +130,7 @@ def download_and_encode(task):
     cmd = [
         'ffmpeg',
         '-i', url,
-        '-c:v', 'hevc_videotoolbox',     # Use H.265 codec
-        '-preset', 'medium',    # Encoding preset
-        '-crf', '28',          # Constant Rate Factor
+        '-c:v', 'hevc_amf',     # Use H.265 codec
         '-c:a', 'aac',         # Audio codec
         '-b:a', '128k',        # Audio bitrate
         '-y',                  # Overwrite output file if exists
@@ -143,24 +141,40 @@ def download_and_encode(task):
     try:
         logger.info(f"Thread {thread_name}: Starting {name} -> {unique_name}")
         start_time = datetime.now()
-        process = subprocess.run(cmd, check=True, capture_output=True, text=True, timeout=TIMEOUT_SECONDS)
-        logger.info(f"Thread {thread_name}: Completed {unique_name}")
-        # Store both name and URL to prevent duplicate downloads
-        mark_as_completed(f"{unique_name}:{url}")
-        return True
-    except subprocess.TimeoutExpired as e:
-        duration = datetime.now() - start_time
-        logger.error(f"Thread {thread_name}: Timeout after {duration} processing {name}. Process terminated.")
-        if output_file.exists():
-            try:
-                output_file.unlink()
-                logger.info(f"Thread {thread_name}: Cleaned up partial file for {name}")
-            except Exception as clean_error:
-                logger.error(f"Thread {thread_name}: Error cleaning up partial file for {name}: {clean_error}")
-        return False
-    except subprocess.CalledProcessError as e:
-        logger.error(f"Thread {thread_name}: Error processing {name}: {e.stderr}")
-        return False
+        
+        # Create process with specific encoding settings
+        process = subprocess.Popen(
+            cmd,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            encoding='utf-8',
+            errors='replace'
+        )
+        
+        # Wait for process to complete with timeout
+        try:
+            stdout, stderr = process.communicate(timeout=TIMEOUT_SECONDS)
+            if process.returncode != 0:
+                logger.error(f"Thread {thread_name}: Error processing {name}: {stderr}")
+                return False
+                
+            logger.info(f"Thread {thread_name}: Completed {unique_name}")
+            # Store both name and URL to prevent duplicate downloads
+            mark_as_completed(f"{unique_name}:{url}")
+            return True
+            
+        except subprocess.TimeoutExpired:
+            process.kill()
+            duration = datetime.now() - start_time
+            logger.error(f"Thread {thread_name}: Timeout after {duration} processing {name}. Process terminated.")
+            if output_file.exists():
+                try:
+                    output_file.unlink()
+                    logger.info(f"Thread {thread_name}: Cleaned up partial file for {name}")
+                except Exception as clean_error:
+                    logger.error(f"Thread {thread_name}: Error cleaning up partial file for {name}: {clean_error}")
+            return False
+            
     except Exception as e:
         logger.error(f"Thread {thread_name}: Unexpected error processing {name}: {str(e)}")
         return False
