@@ -98,9 +98,8 @@ def download_and_encode(task):
     cmd = [
         'ffmpeg',
         '-i', url,
+        '-ss', '12',           # Skip the first 11 seconds (frame-accurate)
         '-c:v', 'hevc_videotoolbox',     # Use H.265 codec
-        '-preset', 'medium',    # Encoding preset
-        '-crf', '28',          # Constant Rate Factor
         '-c:a', 'aac',         # Audio codec
         '-b:a', '128k',        # Audio bitrate
         '-y',                  # Overwrite output file if exists
