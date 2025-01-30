@@ -72,7 +72,7 @@ def get_unique_filename(base_name, output_dir):
 def download_and_encode(task):
     name, url = task
     output_dir = Path('downloads')
-    TIMEOUT_SECONDS = 10800  # 3 hours in seconds
+    TIMEOUT_SECONDS = 18000  # 3 hours in seconds
     
     thread_name = threading.current_thread().name
     logger.info(f"Thread {thread_name} processing: {name}")
