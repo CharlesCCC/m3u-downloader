@@ -15,3 +15,10 @@ filename3, URL.m3u
 
 # New script for processing .m3u files
 python m3u_parser_downloader.py your_playlist.m3u -w 5
+
+# New script for filtering .m3u files
+python filter_m3u.py input_file.m3u "category1, category2, category3" output_file.m3u
+
+# New script for extracting categories from .m3u files
+python extract_categories.py input_file.m3u
+
