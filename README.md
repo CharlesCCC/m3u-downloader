@@ -22,3 +22,6 @@ python filter_m3u.py input_file.m3u "category1, category2, category3" output_fil
 # New script for extracting categories from .m3u files
 python extract_categories.py input_file.m3u
 
+# New script for splitting .m3u files by category
+python split_m3u_by_category.py input_file.m3u
+
